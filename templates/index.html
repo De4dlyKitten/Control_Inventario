@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Control de Inventario - Servidores</title>
+    <script>
+      (function () {
+        const mode = localStorage.getItem("inventory_theme_mode") || "auto";
+        const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = mode === "auto" ? (isDark ? "dark" : "light") : mode;
+        const density = localStorage.getItem("inventory_density_mode") || "normal";
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-density", density);
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <main class="container">
+      <div class="top-actions">
+        <form method="post" action="{{ url_for('logout') }}">
+          <button type="submit" class="button-link">Cerrar sesion</button>
+        </form>
+        <select id="theme-mode" class="theme-select">
+          <option value="auto">Tema: Auto</option>
+          <option value="light">Tema: Claro</option>
+          <option value="dark">Tema: Oscuro</option>
+        </select>
+        <select id="density-mode" class="theme-select">
+          <option value="normal">Vista: Normal</option>
+          <option value="compact">Vista: Compacta</option>
+        </select>
+      </div>
+      <header>
+        <h1>Control de Inventario de Servidores</h1>
+        <p>Registro simple de servidores fisicos y virtuales.</p>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <section class="toast-container" id="toast-container">
+        {% for category, message in messages %}
+        <div class="alert toast {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+      {% endif %}
+      {% endwith %}
+
+      <button type="button" id="toggle-add-form" class="button-link search-toggle">Agregar nuevo servidor</button>
+      <section class="card hidden" id="add-form-panel">
+        <h2>Nuevo servidor</h2>
+        <form method="post" class="form-grid" id="server-form">
+          <label>
+            Nombre del servidor *
+            <input name="nombre_servidor" required />
+          </label>
+
+          <label>
+            Descripcion de uso *
+            <input name="descripcion_uso" required />
+          </label>
+
+          <label>
+            Marca *
+            <input name="marca" id="marca" required />
+          </label>
+
+          <label>
+            Modelo
+            <input name="modelo" id="modelo" />
+          </label>
+
+          <label>
+            CPU
+            <input name="cpu" />
+          </label>
+
+          <label>
+            RAM (GB)
+            <input type="number" min="1" name="ram_gb" />
+          </label>
+
+          <label>
+            IP
+            <input name="ip" placeholder="192.168.1.10" />
+          </label>
+
+          <label>
+            Tipo *
+            <select name="tipo" id="tipo" required>
+              <option value="">Selecciona...</option>
+              <option value="FISICO">Fisico</option>
+              <option value="VIRTUAL">Virtual</option>
+            </select>
+          </label>
+
+          <label>
+            Sistema operativo *
+            <select name="sistema_operativo" required>
+              <option value="">Selecciona...</option>
+              <option value="Windows Server">Windows Server</option>
+              <option value="Ubuntu Server">Ubuntu Server</option>
+            </select>
+          </label>
+
+          <label id="rack-field">
+            Rack
+            <input name="rack" id="rack" placeholder="RACK-01" />
+          </label>
+
+          <label id="u-field">
+            U
+            <input name="unidad_u" id="unidad_u" placeholder="38 o 38-39" />
+          </label>
+
+          <label id="serial-field">
+            Numero de serial
+            <input name="numero_serial" id="numero_serial" placeholder="SN123456789" />
+          </label>
+
+          <label id="activo-field">
+            Numero de activo fijo
+            <input name="numero_activo_fijo" id="numero_activo_fijo" placeholder="AF-000123" />
+          </label>
+
+          <label id="host-field">
+            Host fisico (si es virtual)
+            <select name="host_fisico_id" id="host_fisico_id">
+              <option value="">Selecciona...</option>
+              {% for host in physical_servers %}
+              <option value="{{ host['id'] }}">{{ host['nombre_servidor'] }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <button type="submit">Guardar servidor</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Servidores registrados</h2>
+        <button type="button" id="toggle-filters" class="button-link search-toggle">Busqueda</button>
+        <form method="get" class="form-grid filter-form hidden" id="filters-panel">
+          <label>
+            Nombre
+            <input name="nombre_servidor" value="{{ filters['nombre_servidor'] }}" />
+          </label>
+          <label>
+            Uso
+            <input name="descripcion_uso" value="{{ filters['descripcion_uso'] }}" />
+          </label>
+          <label>
+            Marca
+            <input name="marca" value="{{ filters['marca'] }}" />
+          </label>
+          <label>
+            Modelo
+            <input name="modelo" value="{{ filters['modelo'] }}" />
+          </label>
+          <label>
+            CPU
+            <input name="cpu" value="{{ filters['cpu'] }}" />
+          </label>
+          <label>
+            RAM
+            <input name="ram_gb" value="{{ filters['ram_gb'] }}" />
+          </label>
+          <label>
+            IP
+            <input name="ip" value="{{ filters['ip'] }}" />
+          </label>
+          <label>
+            Tipo
+            <select name="tipo">
+              <option value="">Todos</option>
+              <option value="FISICO" {% if filters['tipo'] == 'FISICO' %}selected{% endif %}>Fisico</option>
+              <option value="VIRTUAL" {% if filters['tipo'] == 'VIRTUAL' %}selected{% endif %}>Virtual</option>
+            </select>
+          </label>
+          <label>
+            SO
+            <select name="sistema_operativo">
+              <option value="">Todos</option>
+              <option value="Windows Server" {% if filters['sistema_operativo'] == 'Windows Server' %}selected{% endif %}>Windows Server</option>
+              <option value="Ubuntu Server" {% if filters['sistema_operativo'] == 'Ubuntu Server' %}selected{% endif %}>Ubuntu Server</option>
+            </select>
+          </label>
+          <label>
+            Rack
+            <input name="rack" value="{{ filters['rack'] }}" />
+          </label>
+          <label>
+            U
+            <input name="unidad_u" value="{{ filters['unidad_u'] }}" />
+          </label>
+          <label>
+            Host fisico
+            <input name="host_fisico_nombre" value="{{ filters['host_fisico_nombre'] }}" />
+          </label>
+          <div class="filter-actions">
+            <button type="submit">Filtrar</button>
+            <a href="{{ url_for('export_csv', **active_filters) }}" class="button-link">Exportar CSV</a>
+            <a href="{{ url_for('index') }}" class="button-link">Limpiar</a>
+          </div>
+        </form>
+
+        <p class="results-count">Resultados: {{ total_results }} | Pagina {{ page }} de {{ total_pages }}</p>
+        {% if servers %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="hidden-col">ID</th>
+                <th>Nombre</th>
+                <th>Uso</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th>RAM</th>
+                <th>IP</th>
+                <th>Tipo</th>
+                <th>SO</th>
+                <th class="rack-col">Rack</th>
+                <th class="u-col">U</th>
+                <th>Host fisico</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for server in servers %}
+              <tr>
+                <td class="hidden-col">{{ server['id'] }}</td>
+                <td>{{ server['nombre_servidor'] }}</td>
+                <td>{{ server['descripcion_uso'] }}</td>
+                <td>{{ server['marca'] }}</td>
+                <td>{{ server['modelo'] }}</td>
+                <td>{% if server['ram_gb'] %}{{ server['ram_gb'] }} GB{% else %}-{% endif %}</td>
+                <td>{{ server['ip'] }}</td>
+                <td>
+                  <span class="chip chip-tipo {{ 'chip-fisico' if server['tipo'] == 'FISICO' else 'chip-virtual' }}">
+                    {{ server['tipo'] }}
+                  </span>
+                </td>
+                <td>
+                  {% if server['sistema_operativo'] == 'Windows Server' %}
+                  <span class="chip chip-so chip-windows">Windows</span>
+                  {% elif server['sistema_operativo'] == 'Ubuntu Server' %}
+                  <span class="chip chip-so chip-ubuntu">Ubuntu</span>
+                  {% else %}
+                  -
+                  {% endif %}
+                </td>
+                <td class="rack-col">{{ server['rack'] or '-' }}</td>
+                <td class="u-col">{{ server['unidad_u'] or '-' }}</td>
+                <td>
+                  {% if server['host_fisico_id'] %}
+                  <button
+                    type="button"
+                    class="host-link"
+                    data-host-id="{{ server['host_fisico_id'] }}"
+                  >
+                    {{ server['host_fisico_nombre'] }}
+                  </button>
+                  {% else %}
+                  -
+                  {% endif %}
+                </td>
+                <td class="row-actions">
+                  <a class="button-link row-button" href="{{ url_for('edit_server', server_id=server['id'], next=current_url) }}">Editar</a>
+                  <form method="post" action="{{ url_for('delete_server', server_id=server['id']) }}" onsubmit="return confirm('Seguro que deseas eliminar este servidor?');">
+                    <input type="hidden" name="next" value="{{ current_url }}" />
+                    <button type="submit" class="danger row-button">Eliminar</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if total_pages > 1 %}
+        <nav class="pagination">
+          {% if prev_url %}
+          <a href="{{ prev_url }}" class="button-link">Anterior</a>
+          {% endif %}
+          {% for page_number, page_url in page_urls %}
+          <a href="{{ page_url }}" class="button-link {% if page_number == page %}active-page{% endif %}">{{ page_number }}</a>
+          {% endfor %}
+          {% if next_url %}
+          <a href="{{ next_url }}" class="button-link">Siguiente</a>
+          {% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <p>No hay servidores cargados aun.</p>
+        {% endif %}
+      </section>
+    </main>
+
+    <div class="modal-backdrop hidden" id="host-modal-backdrop">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3>Host fisico</h3>
+          <button type="button" id="close-host-modal" class="button-link">Cerrar</button>
+        </div>
+        <div class="modal-body" id="host-modal-body">
+          Cargando...
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const THEME_KEY = "inventory_theme_mode";
+        const DENSITY_KEY = "inventory_density_mode";
+        const themeModeSelect = document.getElementById("theme-mode");
+        const densityModeSelect = document.getElementById("density-mode");
+        const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+        function resolveTheme(mode) {
+          if (mode === "dark") return "dark";
+          if (mode === "light") return "light";
+          return systemDark.matches ? "dark" : "light";
+        }
+
+        function applyTheme(mode) {
+          const finalTheme = resolveTheme(mode);
+          document.documentElement.setAttribute("data-theme", finalTheme);
+        }
+
+        const savedMode = localStorage.getItem(THEME_KEY) || "auto";
+        themeModeSelect.value = savedMode;
+        applyTheme(savedMode);
+        const savedDensity = localStorage.getItem(DENSITY_KEY) || "normal";
+        densityModeSelect.value = savedDensity;
+        document.documentElement.setAttribute("data-density", savedDensity);
+
+        themeModeSelect.addEventListener("change", function () {
+          const mode = themeModeSelect.value;
+          localStorage.setItem(THEME_KEY, mode);
+          applyTheme(mode);
+        });
+
+        densityModeSelect.addEventListener("change", function () {
+          const mode = densityModeSelect.value;
+          localStorage.setItem(DENSITY_KEY, mode);
+          document.documentElement.setAttribute("data-density", mode);
+        });
+
+        systemDark.addEventListener("change", function () {
+          if ((localStorage.getItem(THEME_KEY) || "auto") === "auto") {
+            applyTheme("auto");
+          }
+        });
+
+        const tipo = document.getElementById("tipo");
+        const rackField = document.getElementById("rack-field");
+        const uField = document.getElementById("u-field");
+        const hostField = document.getElementById("host-field");
+        const rackInput = document.getElementById("rack");
+        const uInput = document.getElementById("unidad_u");
+        const hostInput = document.getElementById("host_fisico_id");
+        const serialField = document.getElementById("serial-field");
+        const activoField = document.getElementById("activo-field");
+        const serialInput = document.getElementById("numero_serial");
+        const activoInput = document.getElementById("numero_activo_fijo");
+        const marcaInput = document.getElementById("marca");
+        const modeloInput = document.getElementById("modelo");
+
+        function setFieldState(container, input, visible) {
+          container.classList.toggle("hidden", !visible);
+          input.disabled = !visible;
+          if (!visible) {
+            input.value = "";
+          }
+        }
+
+        function syncByType() {
+          const selected = tipo.value;
+          const isFisico = selected === "FISICO";
+          const isVirtual = selected === "VIRTUAL";
+
+          setFieldState(rackField, rackInput, isFisico);
+          setFieldState(uField, uInput, isFisico);
+          setFieldState(hostField, hostInput, isVirtual);
+          setFieldState(serialField, serialInput, isFisico);
+          setFieldState(activoField, activoInput, isFisico);
+
+          if (isVirtual) {
+            marcaInput.value = "Hyper-V";
+            marcaInput.readOnly = true;
+            modeloInput.required = false;
+          } else {
+            marcaInput.readOnly = false;
+            modeloInput.required = true;
+          }
+        }
+
+        tipo.addEventListener("change", syncByType);
+        syncByType();
+
+        const toggleFiltersBtn = document.getElementById("toggle-filters");
+        const filtersPanel = document.getElementById("filters-panel");
+        const hasActiveFilters = {{ (active_filters|length > 0)|tojson }};
+        const toggleAddFormBtn = document.getElementById("toggle-add-form");
+        const addFormPanel = document.getElementById("add-form-panel");
+        const showAddForm = {{ show_add_form|tojson }};
+
+        if (hasActiveFilters) {
+          filtersPanel.classList.remove("hidden");
+        }
+
+        toggleFiltersBtn.addEventListener("click", function () {
+          filtersPanel.classList.toggle("hidden");
+        });
+
+        if (showAddForm) {
+          addFormPanel.classList.remove("hidden");
+        }
+
+        toggleAddFormBtn.addEventListener("click", function () {
+          addFormPanel.classList.toggle("hidden");
+        });
+
+        const toasts = document.querySelectorAll(".toast");
+        toasts.forEach(function (toast, index) {
+          setTimeout(function () {
+            toast.classList.add("toast-hide");
+            setTimeout(function () {
+              toast.remove();
+            }, 250);
+          }, 3000 + index * 150);
+        });
+
+        const hostModalBackdrop = document.getElementById("host-modal-backdrop");
+        const hostModalBody = document.getElementById("host-modal-body");
+        const closeHostModalBtn = document.getElementById("close-host-modal");
+        const hostLinks = document.querySelectorAll(".host-link");
+
+        function closeHostModal() {
+          hostModalBackdrop.classList.add("hidden");
+        }
+
+        async function openHostModal(hostId) {
+          hostModalBody.textContent = "Cargando...";
+          hostModalBackdrop.classList.remove("hidden");
+
+          try {
+            const response = await fetch(`/servers/${hostId}/summary`);
+            if (!response.ok) {
+              throw new Error("No se pudo cargar el host fisico");
+            }
+
+            const data = await response.json();
+            hostModalBody.innerHTML = `
+              <div class="modal-grid">
+                <div><strong>Nombre:</strong> ${data.nombre_servidor || "-"}</div>
+                <div><strong>Tipo:</strong> ${data.tipo || "-"}</div>
+                <div><strong>IP:</strong> ${data.ip || "-"}</div>
+                <div><strong>Marca:</strong> ${data.marca || "-"}</div>
+                <div><strong>Modelo:</strong> ${data.modelo || "-"}</div>
+                <div><strong>SO:</strong> ${data.sistema_operativo || "-"}</div>
+                <div><strong>CPU:</strong> ${data.cpu || "-"}</div>
+                <div><strong>RAM:</strong> ${data.ram_gb ? `${data.ram_gb} GB` : "-"}</div>
+                <div><strong>Rack:</strong> ${data.rack || "-"}</div>
+                <div><strong>U:</strong> ${data.unidad_u || "-"}</div>
+                <div><strong>Uso:</strong> ${data.descripcion_uso || "-"}</div>
+              </div>
+            `;
+          } catch (error) {
+            hostModalBody.textContent = "No se pudo obtener la informacion del host fisico.";
+          }
+        }
+
+        hostLinks.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            openHostModal(btn.dataset.hostId);
+          });
+        });
+
+        closeHostModalBtn.addEventListener("click", closeHostModal);
+        hostModalBackdrop.addEventListener("click", function (event) {
+          if (event.target === hostModalBackdrop) {
+            closeHostModal();
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

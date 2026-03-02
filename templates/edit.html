@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Editar Servidor</title>
+    <script>
+      (function () {
+        const mode = localStorage.getItem("inventory_theme_mode") || "auto";
+        const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = mode === "auto" ? (isDark ? "dark" : "light") : mode;
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <main class="container">
+      <div class="top-actions">
+        <form method="post" action="{{ url_for('logout') }}">
+          <button type="submit" class="button-link">Cerrar sesion</button>
+        </form>
+        <select id="theme-mode" class="theme-select">
+          <option value="auto">Tema: Auto</option>
+          <option value="light">Tema: Claro</option>
+          <option value="dark">Tema: Oscuro</option>
+        </select>
+      </div>
+      <header>
+        <h1>Editar servidor #{{ server['id'] }}</h1>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <section class="toast-container" id="toast-container">
+        {% for category, message in messages %}
+        <div class="alert toast {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+      {% endif %}
+      {% endwith %}
+
+      <section class="card">
+        <form method="post" class="form-grid" id="edit-server-form">
+          <input type="hidden" name="next" value="{{ next_url }}" />
+
+          <label>
+            Nombre del servidor *
+            <input name="nombre_servidor" value="{{ server['nombre_servidor'] }}" required />
+          </label>
+
+          <label>
+            Descripcion de uso *
+            <input name="descripcion_uso" value="{{ server['descripcion_uso'] }}" required />
+          </label>
+
+          <label>
+            Marca *
+            <input name="marca" id="marca" value="{{ server['marca'] }}" required />
+          </label>
+
+          <label>
+            Modelo
+            <input name="modelo" id="modelo" value="{{ server['modelo'] }}" />
+          </label>
+
+          <label>
+            CPU
+            <input name="cpu" value="{{ server['cpu'] or '' }}" />
+          </label>
+
+          <label>
+            RAM (GB)
+            <input type="number" min="1" name="ram_gb" value="{{ server['ram_gb'] or '' }}" />
+          </label>
+
+          <label>
+            IP
+            <input name="ip" value="{{ server['ip'] or '' }}" />
+          </label>
+
+          <label>
+            Tipo *
+            <select name="tipo" id="tipo" required>
+              <option value="">Selecciona...</option>
+              <option value="FISICO" {% if server['tipo'] == 'FISICO' %}selected{% endif %}>Fisico</option>
+              <option value="VIRTUAL" {% if server['tipo'] == 'VIRTUAL' %}selected{% endif %}>Virtual</option>
+            </select>
+          </label>
+
+          <label>
+            Sistema operativo *
+            <select name="sistema_operativo" required>
+              <option value="">Selecciona...</option>
+              <option value="Windows Server" {% if server['sistema_operativo'] == 'Windows Server' %}selected{% endif %}>Windows Server</option>
+              <option value="Ubuntu Server" {% if server['sistema_operativo'] == 'Ubuntu Server' %}selected{% endif %}>Ubuntu Server</option>
+            </select>
+          </label>
+
+          <label id="rack-field">
+            Rack
+            <input name="rack" id="rack" value="{{ server['rack'] or '' }}" placeholder="RACK-01" />
+          </label>
+
+          <label id="u-field">
+            U
+            <input name="unidad_u" id="unidad_u" value="{{ server['unidad_u'] or '' }}" placeholder="38 o 38-39" />
+          </label>
+
+          <label id="serial-field">
+            Numero de serial
+            <input name="numero_serial" id="numero_serial" value="{{ server['numero_serial'] or '' }}" placeholder="SN123456789" />
+          </label>
+
+          <label id="activo-field">
+            Numero de activo fijo
+            <input name="numero_activo_fijo" id="numero_activo_fijo" value="{{ server['numero_activo_fijo'] or '' }}" placeholder="AF-000123" />
+          </label>
+
+          <label id="host-field">
+            Host fisico (si es virtual)
+            <select name="host_fisico_id" id="host_fisico_id">
+              <option value="">Selecciona...</option>
+              {% for host in physical_servers %}
+              <option value="{{ host['id'] }}" {% if server['host_fisico_id'] == host['id'] %}selected{% endif %}>{{ host['nombre_servidor'] }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <button type="submit">Guardar cambios</button>
+          <a href="{{ next_url }}" class="button-link">Volver</a>
+        </form>
+      </section>
+    </main>
+    <script>
+      (function () {
+        const THEME_KEY = "inventory_theme_mode";
+        const themeModeSelect = document.getElementById("theme-mode");
+        const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+        function resolveTheme(mode) {
+          if (mode === "dark") return "dark";
+          if (mode === "light") return "light";
+          return systemDark.matches ? "dark" : "light";
+        }
+
+        function applyTheme(mode) {
+          const finalTheme = resolveTheme(mode);
+          document.documentElement.setAttribute("data-theme", finalTheme);
+        }
+
+        const savedMode = localStorage.getItem(THEME_KEY) || "auto";
+        themeModeSelect.value = savedMode;
+        applyTheme(savedMode);
+
+        themeModeSelect.addEventListener("change", function () {
+          const mode = themeModeSelect.value;
+          localStorage.setItem(THEME_KEY, mode);
+          applyTheme(mode);
+        });
+
+        systemDark.addEventListener("change", function () {
+          if ((localStorage.getItem(THEME_KEY) || "auto") === "auto") {
+            applyTheme("auto");
+          }
+        });
+
+        const tipo = document.getElementById("tipo");
+        const rackField = document.getElementById("rack-field");
+        const uField = document.getElementById("u-field");
+        const hostField = document.getElementById("host-field");
+        const rackInput = document.getElementById("rack");
+        const uInput = document.getElementById("unidad_u");
+        const hostInput = document.getElementById("host_fisico_id");
+        const serialField = document.getElementById("serial-field");
+        const activoField = document.getElementById("activo-field");
+        const serialInput = document.getElementById("numero_serial");
+        const activoInput = document.getElementById("numero_activo_fijo");
+        const marcaInput = document.getElementById("marca");
+        const modeloInput = document.getElementById("modelo");
+
+        function setFieldState(container, input, visible) {
+          container.classList.toggle("hidden", !visible);
+          input.disabled = !visible;
+          if (!visible) {
+            input.value = "";
+          }
+        }
+
+        function syncByType() {
+          const selected = tipo.value;
+          const isFisico = selected === "FISICO";
+          const isVirtual = selected === "VIRTUAL";
+
+          setFieldState(rackField, rackInput, isFisico);
+          setFieldState(uField, uInput, isFisico);
+          setFieldState(hostField, hostInput, isVirtual);
+          setFieldState(serialField, serialInput, isFisico);
+          setFieldState(activoField, activoInput, isFisico);
+
+          if (isVirtual) {
+            marcaInput.value = "Hyper-V";
+            marcaInput.readOnly = true;
+            modeloInput.required = false;
+          } else {
+            marcaInput.readOnly = false;
+            modeloInput.required = true;
+          }
+        }
+
+        tipo.addEventListener("change", syncByType);
+        syncByType();
+
+        const toasts = document.querySelectorAll(".toast");
+        toasts.forEach(function (toast, index) {
+          setTimeout(function () {
+            toast.classList.add("toast-hide");
+            setTimeout(function () {
+              toast.remove();
+            }, 250);
+          }, 3000 + index * 150);
+        });
+      })();
+    </script>
+  </body>
+</html>

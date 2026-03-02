@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login - Control de Inventario</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="card login-card">
+        <h1>Iniciar sesion</h1>
+        <p>Acceso restringido al sistema de inventario.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <section class="alerts">
+          {% for category, message in messages %}
+          <div class="alert {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+        {% endif %}
+        {% endwith %}
+
+        <form method="post" class="form-grid">
+          <input type="hidden" name="next" value="{{ next_url }}" />
+          <label>
+            Usuario
+            <input name="username" autocomplete="username" required />
+          </label>
+          <label>
+            Clave
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Entrar</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

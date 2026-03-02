@@ -1,0 +1,306 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 2001 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 50 792 Tm
+(# Guia de Despliegue Empresarial - Control de Inventario) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Fecha: 2026-02-23) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 1\) Arquitectura recomendada) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (### Opcion recomendada \(produccion\)) Tj
+0 -14 Td (- Hyper-V Host) Tj
+0 -14 Td (- VM Ubuntu Server 24.04 LTS) Tj
+0 -14 Td (- Nginx \(reverse proxy\)) Tj
+0 -14 Td (- Gunicorn \(servidor WSGI para Flask\)) Tj
+0 -14 Td (- PostgreSQL 16 \(base de datos\)) Tj
+0 -14 Td (- DNS interno \(Windows DNS\)) Tj
+0 -14 Td (- Certificado TLS \(CA interna o publico\)) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (### Opcion rapida \(piloto / laboratorio\)) Tj
+0 -14 Td (- Igual que arriba, pero usando SQLite temporalmente.) Tj
+0 -14 Td (- Solo recomendada para pilotos o baja concurrencia.) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 2\) Requisitos de infraestructura) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (- 1 VM \(produccion minima\):) Tj
+0 -14 Td (- 2 vCPU) Tj
+0 -14 Td (- 8 GB RAM) Tj
+0 -14 Td (- 80 GB disco) Tj
+0 -14 Td (- IP fija \(ejemplo: 10.20.30.50\)) Tj
+0 -14 Td (- Acceso desde red LAN a puertos 80 y 443) Tj
+0 -14 Td (- DNS interno administrado \(Active Directory DNS recomendado\)) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 3\) Paso a paso en Hyper-V) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (1. Crear VM Generacion 2.) Tj
+0 -14 Td (2. Asignar 2 vCPU, 8 GB RAM, disco 80 GB.) Tj
+0 -14 Td (3. Conectar a vSwitch externo para red LAN.) Tj
+0 -14 Td (4. Instalar Ubuntu Server 24.04 LTS.) Tj
+0 -14 Td (5. Configurar IP fija en la VM.) Tj
+0 -14 Td (6. Actualizar sistema:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+0 -14 Td (sudo apt update && sudo apt -y upgrade) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 4\) Preparar aplicacion en Ubuntu) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (1. Instalar paquetes base:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+0 -14 Td (sudo apt install -y python3-venv python3-pip nginx git) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (2. Crear ruta de aplicacion:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+4 0 obj
+<< /Length 1891 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 50 792 Tm
+(sudo mkdir -p /opt/control_inventario) Tj
+0 -14 Td (sudo chown $USER:$USER /opt/control_inventario) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (3. Copiar proyecto a `/opt/control_inventario`.) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (4. Crear entorno virtual e instalar dependencias:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+0 -14 Td (cd /opt/control_inventario) Tj
+0 -14 Td (python3 -m venv .venv) Tj
+0 -14 Td (source .venv/bin/activate) Tj
+0 -14 Td (pip install --upgrade pip) Tj
+0 -14 Td (pip install -r requirements.txt) Tj
+0 -14 Td (pip install gunicorn) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 5\) Crear servicio systemd \(Gunicorn\)) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Crear archivo `/etc/systemd/system/control-inventario.service`:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```ini) Tj
+0 -14 Td ([Unit]) Tj
+0 -14 Td (Description=Control Inventario Gunicorn) Tj
+0 -14 Td (After=network.target) Tj
+0 -14 Td ( ) Tj
+0 -14 Td ([Service]) Tj
+0 -14 Td (User=www-data) Tj
+0 -14 Td (Group=www-data) Tj
+0 -14 Td (WorkingDirectory=/opt/control_inventario) Tj
+0 -14 Td (Environment="PATH=/opt/control_inventario/.venv/bin") Tj
+0 -14 Td (ExecStart=/opt/control_inventario/.venv/bin/gunicorn -w 3 -b 127.0.0.1:8000 app:app) Tj
+0 -14 Td (Restart=always) Tj
+0 -14 Td ( ) Tj
+0 -14 Td ([Install]) Tj
+0 -14 Td (WantedBy=multi-user.target) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Aplicar:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+0 -14 Td (sudo chown -R www-data:www-data /opt/control_inventario) Tj
+0 -14 Td (sudo systemctl daemon-reload) Tj
+0 -14 Td (sudo systemctl enable --now control-inventario) Tj
+0 -14 Td (sudo systemctl status control-inventario) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 6\) Configurar Nginx) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Crear `/etc/nginx/sites-available/control-inventario`:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```nginx) Tj
+0 -14 Td (server {) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 2093 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 50 792 Tm
+(    listen 80;) Tj
+0 -14 Td (    server_name inventario.empresa.local;) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (    location / {) Tj
+0 -14 Td (        proxy_pass http://127.0.0.1:8000;) Tj
+0 -14 Td (        proxy_set_header Host $host;) Tj
+0 -14 Td (        proxy_set_header X-Real-IP $remote_addr;) Tj
+0 -14 Td (        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;) Tj
+0 -14 Td (        proxy_set_header X-Forwarded-Proto $scheme;) Tj
+0 -14 Td (    }) Tj
+0 -14 Td (}) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Activar:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+0 -14 Td (sudo ln -s /etc/nginx/sites-available/control-inventario /etc/nginx/sites-enabled/control-inventario) Tj
+0 -14 Td (sudo nginx -t) Tj
+0 -14 Td (sudo systemctl reload nginx) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 7\) DNS interno para acceso facil) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Objetivo: acceder desde cualquier PC con `http://inventario.empresa.local`.) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (1. En servidor DNS de AD, abrir DNS Manager.) Tj
+0 -14 Td (2. En la zona interna \(`empresa.local`\), crear registro A:) Tj
+0 -14 Td (- Nombre: `inventario`) Tj
+0 -14 Td (- IP: `10.20.30.50` \(IP fija de la VM\)) Tj
+0 -14 Td (3. Verificar desde un equipo cliente:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```powershell) Tj
+0 -14 Td (nslookup inventario.empresa.local) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 8\) HTTPS \(recomendado\)) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Opciones:) Tj
+0 -14 Td (- CA interna \(si es solo red corporativa\)) Tj
+0 -14 Td (- Certificado publico \(si el dominio es publico y resoluble\)) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Aplicar certificado en Nginx y redirigir HTTP -> HTTPS.) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 9\) Base de datos: recomendacion empresarial) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Recomendado: migrar de SQLite a PostgreSQL para produccion.) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Ventajas:) Tj
+0 -14 Td (- Mejor concurrencia) Tj
+0 -14 Td (- Backups consistentes) Tj
+0 -14 Td (- Mayor control de seguridad y recuperacion) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (Plan de migracion:) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 2491 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 50 792 Tm
+(1. Crear instancia PostgreSQL.) Tj
+0 -14 Td (2. Definir esquema equivalente.) Tj
+0 -14 Td (3. Migrar datos actuales.) Tj
+0 -14 Td (4. Cambiar capa de acceso en app \(SQLAlchemy o adaptador PostgreSQL\).) Tj
+0 -14 Td (5. Probar en entorno QA antes de produccion.) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 10\) Backups y operacion) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (- Backup diario de base de datos.) Tj
+0 -14 Td (- Backup de `/opt/control_inventario` y archivos de configuracion.) Tj
+0 -14 Td (- Monitoreo de servicio:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+0 -14 Td (sudo systemctl status control-inventario) Tj
+0 -14 Td (sudo systemctl status nginx) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (- Logs:) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (```bash) Tj
+0 -14 Td (journalctl -u control-inventario -f) Tj
+0 -14 Td (sudo tail -f /var/log/nginx/error.log) Tj
+0 -14 Td (```) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 11\) Checklist de salida a produccion) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (- VM con IP fija) Tj
+0 -14 Td (- DNS resolviendo desde clientes) Tj
+0 -14 Td (- Nginx operativo) Tj
+0 -14 Td (- Gunicorn operativo) Tj
+0 -14 Td (- HTTPS activo) Tj
+0 -14 Td (- Backup probado \(restore probado\)) Tj
+0 -14 Td (- Acceso validado desde al menos 3 equipos de red) Tj
+0 -14 Td (- Documentacion de credenciales y responsables) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## 12\) Recomendacion final de sistema operativo) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (- VM aplicacion: Ubuntu Server 24.04 LTS \(estabilidad, soporte largo, despliegue simple\).) Tj
+0 -14 Td (- DNS corporativo: Windows Server DNS \(si ya usan Active Directory\).) Tj
+0 -14 Td (- Base de datos: PostgreSQL 16 en Linux \(dedicada o compartida segun capacidad\).) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (## Referencias oficiales) Tj
+0 -14 Td ( ) Tj
+0 -14 Td (- Ubuntu 24.04 LTS release notes:) Tj
+0 -14 Td (https://discourse.ubuntu.com/t/ubuntu-24-04-lts-noble-numbat-release-notes/39890) Tj
+0 -14 Td (- Flask deployment docs: https://flask.palletsprojects.com/en/stable/deploying/) Tj
+0 -14 Td (- Gunicorn docs: https://docs.gunicorn.org/en/stable/) Tj
+0 -14 Td (- Nginx docs: https://nginx.org/en/docs/) Tj
+0 -14 Td (- PostgreSQL docs: https://www.postgresql.org/docs/) Tj
+0 -14 Td (- Hyper-V overview \(Microsoft\):) Tj
+0 -14 Td (https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/hyper-v-overview) Tj
+0 -14 Td (- DNS in Windows Server \(Microsoft\):) Tj
+0 -14 Td (https://learn.microsoft.com/en-us/windows-server/networking/dns/) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 189 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 50 792 Tm
+(- Add-DnsServerResourceRecordA \(Microsoft\):) Tj
+0 -14 Td (https://learn.microsoft.com/en-us/powershell/module/dnsserver/add-dnsserverresourcerecorda) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 12 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Type /Pages /Count 5 /Kids [3 0 R 5 0 R 7 0 R 9 0 R 11 0 R] >>
+endobj
+13 0 obj
+<< /Type /Catalog /Pages 12 0 R >>
+endobj
+xref
+0 14
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000002138 00000 n 
+0000002265 00000 n 
+0000004208 00000 n 
+0000004335 00000 n 
+0000006480 00000 n 
+0000006607 00000 n 
+0000009150 00000 n 
+0000009277 00000 n 
+0000009518 00000 n 
+0000009647 00000 n 
+0000009730 00000 n 
+trailer
+<< /Size 14 /Root 13 0 R >>
+startxref
+9781
+%%EOF
